@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $total    = (int)$_POST['total'];
     $available = (int)$_POST['available'];
 
-    if ($available > $total) $available = $total;//prevent inventory from going below 0s
+    if ($available > $total) $available = $total;
     if ($total > 0) {
         $bookModel->upsertInventory($bookId, $branchId, $total, $available);
         setFlash('success', 'Inventory updated successfully.');
