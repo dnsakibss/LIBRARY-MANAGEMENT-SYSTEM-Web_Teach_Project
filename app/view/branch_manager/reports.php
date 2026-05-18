@@ -5,7 +5,7 @@
   <form method="GET" action="<?= BASE_URL ?>index.php" class="d-inline-flex gap-2 align-items-center">
     <input type="hidden" name="page" value="manager_reports">
     <label class="fw-semibold me-2">Branch:</label>
-    <select name="branch_id" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+    <select name="branch_id" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">//new added code
       <?php foreach ($branches as $b): ?>
       <option value="<?= $b['id'] ?>" <?= $selectedBranch == $b['id'] ? 'selected' : '' ?>><?= e($b['name']) ?></option>
       <?php endforeach; ?>
