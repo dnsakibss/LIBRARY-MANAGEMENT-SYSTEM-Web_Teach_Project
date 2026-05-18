@@ -3,6 +3,15 @@
   <h2 class="mb-0"><i class="bi bi-archive me-2 text-danger"></i>Inventory Management</h2>
 </div>
 
+<?php $flash = getFlash(); ?>
+<?php if ($flash): ?>
+<div class="alert alert-<?= e($flash['type']) ?> alert-dismissible fade show" role="alert">
+  <i class="bi bi-<?= $flash['type'] === 'success' ? 'check-circle' : 'exclamation-triangle' ?> me-2"></i>
+  <?= e($flash['msg']) ?>
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+<?php endif; ?>
+
 <div class="row g-4">
   <!-- Quick Update For -->
   <div class="col-md-4">
@@ -11,40 +20,44 @@
         <i class="bi bi-pencil-square me-2"></i>Update Stock
       </div>
       <div class="card-body">
-        <form method="POST">
+        <form method="POST" id="inventoryForm" novalidate>
           <div class="mb-3">
             <label class="form-label small fw-semibold">Branch</label>
-            <select name="branch_id" class="form-select form-select-sm" required>
+            <select name="branch_id" class="form-select form-select-sm" required id="branchSelect">
               <option value="">-- Select Branch --</option>
               <?php foreach ($branches as $b): if (!$b['is_active']) continue; ?>
               <option value="<?= $b['id'] ?>"><?= e($b['name']) ?></option>
               <?php endforeach; ?>
             </select>
+            <div class="invalid-feedback">Please select a branch</div>
           </div>
           <div class="mb-3">
             <label class="form-label small fw-semibold">Book</label>
-            <select name="book_id" class="form-select form-select-sm" required>
+            <select name="book_id" class="form-select form-select-sm" required id="bookSelect">
               <option value="">-- Select Book --</option>
               <?php foreach ($allBooks as $b): ?>
               <option value="<?= $b['id'] ?>"><?= e($b['title']) ?></option>
               <?php endforeach; ?>
             </select>
+            <div class="invalid-feedback">Please select a book</div>
           </div>
           <div class="row g-2 mb-3">
             <div class="col-6">
               <label class="form-label small fw-semibold">Total Copies</label>
-              <input type="number" name="total" class="form-control form-control-sm" min="1" value="1" required>
+              <input type="number" name="total" class="form-control form-control-sm" min="1" value="1" required id="totalInput">
+              <div class="invalid-feedback">Please enter a valid number of total copies</div>
             </div>
             <div class="col-6">
               <label class="form-label small fw-semibold">Available Now</label>
-              <input type="number" name="available" class="form-control form-control-sm" min="0" value="1" required>
+              <input type="number" name="available" class="form-control form-control-sm" min="0" value="1" required id="availableInput">
+              <div class="invalid-feedback">Please enter available copies (cannot exceed total)</div>
             </div>
           </div>
           <div class="alert alert-info py-2 small">
             <i class="bi bi-info-circle me-1"></i>
             <strong>Available</strong> = Total minus currently borrowed
           </div>
-          <button class="btn btn-danger btn-sm w-100">
+          <button type="submit" class="btn btn-danger btn-sm w-100">
             <i class="bi bi-save me-1"></i>Update Inventory
           </button>
         </form>
@@ -55,12 +68,25 @@
   <!-- Cross-Branch Inventory Table -->
   <div class="col-md-8">
     <div class="card border-0 shadow-sm">
-      <div class="card-header bg-white fw-semibold">
-        <i class="bi bi-table me-2 text-danger"></i>All Branches Inventory
+      <div class="card-header bg-white fw-semibold d-flex justify-content-between align-items-center">
+        <div>
+          <i class="bi bi-table me-2 text-danger"></i>All Branches Inventory
+        </div>
+        <div class="dropdown">
+          <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-funnel"></i> Filter
+          </button>
+          <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" data-filter="all">Show All</a></li>
+            <li><a class="dropdown-item" href="#" data-filter="low-stock">Low Stock (< 20%)</a></li>
+            <li><a class="dropdown-item" href="#" data-filter="out-of-stock">Out of Stock</a></li>
+            <li><a class="dropdown-item" href="#" data-filter="overstocked">Overstocked (> 80%)</a></li>
+          </ul>
+        </div>
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0 small">
+          <table class="table table-hover align-middle mb-0 small" id="inventoryTable">
             <thead class="table-danger">
               <tr>
                 <th>Title</th>
@@ -69,7 +95,7 @@
                 <th class="text-center">Available</th>
                 <th class="text-center">Total</th>
                 <th class="text-center">Borrowed</th>
-                <th class="text-center">Stock</th>
+                <th class="text-center">Stock Level</th>
               </tr>
             </thead>
             <tbody>
@@ -78,8 +104,10 @@
             <?php else: foreach ($inventory as $row):
               $borrowed = $row['total_copies'] - $row['available_copies'];
               $pct = $row['total_copies'] > 0 ? ($row['available_copies'] / $row['total_copies'] * 100) : 0;
+              $stockClass = $pct >= 80 ? 'success' : ($pct >= 20 ? 'warning' : 'danger');
+              $stockText = $pct >= 80 ? 'Good' : ($pct >= 20 ? 'Low' : 'Critical');
             ?>
-            <tr>
+            <tr data-stock-pct="<?= $pct ?>">
               <td class="fw-semibold"><?= e($row['title']) ?></td>
               <td class="text-muted"><?= e($row['author']) ?></td>
               <td><span class="badge bg-secondary"><?= e($row['branch_name']) ?></span></td>
@@ -94,10 +122,10 @@
               </td>
               <td style="min-width:80px">
                 <div class="progress" style="height:6px">
-                  <div class="progress-bar bg-<?= $pct > 50 ? 'success' : ($pct > 0 ? 'warning' : 'danger') ?>"
+                  <div class="progress-bar bg-<?= $stockClass ?>"
                        style="width:<?= $pct ?>%"></div>
                 </div>
-                <small class="text-muted"><?= round($pct) ?>%</small>
+                <small class="text-muted"><?= $stockText ?> (<=><?= round($pct) ?>%)</small>
               </td>
             </tr>
             <?php endforeach; endif; ?>
@@ -108,3 +136,101 @@
     </div>
   </div>
 </div>
+
+<script>
+// Form validation and enhancement
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.getElementById('inventoryForm');
+  const branchSelect = document.getElementById('branchSelect');
+  const bookSelect = document.getElementById('bookSelect');
+  const totalInput = document.getElementById('totalInput');
+  const availableInput = document.getElementById('availableInput');
+
+  // Bootstrap form validation
+  form.addEventListener('submit', function(event) {
+    if (!form.checkValidity()) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+
+    // Custom validation: available cannot exceed total
+    const total = parseInt(totalInput.value) || 0;
+    const available = parseInt(availableInput.value) || 0;
+
+    if (available > total) {
+      event.preventDefault();
+      event.stopPropagation();
+      availableInput.setCustomValidity('Available copies cannot exceed total copies');
+      availableInput.reportValidity();
+    } else {
+      availableInput.setCustomValidity('');
+    }
+
+    form.classList.add('was-validated');
+  }, false);
+
+  // Real-time validation for available input
+  availableInput.addEventListener('input', function() {
+    const total = parseInt(totalInput.value) || 0;
+    const available = parseInt(this.value) || 0;
+
+    if (available > total) {
+      this.setCustomValidity('Available copies cannot exceed total copies');
+    } else {
+      this.setCustomValidity('');
+    }
+  });
+
+  // Table filtering
+  const filterButtons = document.querySelectorAll('.dropdown-item');
+  const tableRows = document.querySelectorAll('#inventoryTable tbody tr[data-stock-pct]');
+
+  filterButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      const filter = this.getAttribute('data-filter');
+
+      // Update active button
+      document.querySelector('.dropdown-item.active')?.classList.remove('active');
+      this.classList.add('active');
+
+      // Filter rows
+      tableRows.forEach(row => {
+        const pct = parseFloat(row.getAttribute('data-stock-pct'));
+        let show = true;
+
+        switch(filter) {
+          case 'low-stock':
+            show = pct < 20;
+            break;
+          case 'out-of-stock':
+            show = pct === 0;
+            break;
+          case 'overstocked':
+            show = pct > 80;
+            break;
+          case 'all':
+          default:
+            show = true;
+        }
+
+        row.style.display = show ? '' : 'none';
+      });
+    });
+  });
+
+  // Initialize first filter as active
+  document.querySelector('.dropdown-item[data-filter="all"]').classList.add('active');
+});
+
+// Auto-dismiss flash alerts after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+  const alerts = document.querySelectorAll('.alert');
+  alerts.forEach(function(alert) {
+    setTimeout(function() {
+      const bsAlert = new bootstrap.Alert(alert);
+      bsAlert.close();
+    }, 5000);
+  });
+});
+</script>
