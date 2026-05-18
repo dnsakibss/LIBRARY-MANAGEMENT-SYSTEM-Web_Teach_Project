@@ -18,7 +18,7 @@
         </div>
         <div class="col-12">
           <label class="form-label fw-semibold">Address</label>
-          <input type="text" name="address" class="form-control" value="<?= e($old['address'] ?? '') ?>">
+          <input type="text" name="address" class="form-control" value="<?= e($old['address'] ?? '') ?>"> //fixed
         </div>
         <div class="col-md-6">
           <label class="form-label fw-semibold">Phone</label>

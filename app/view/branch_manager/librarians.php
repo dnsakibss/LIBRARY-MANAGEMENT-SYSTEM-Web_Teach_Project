@@ -14,7 +14,7 @@
           <td><?= e($lib['email']) ?></td>
           <td><?= e($lib['branch_name'] ?? 'Unassigned') ?></td>
           <td>
-            <form method="POST" class="d-inline-flex gap-2 align-items-center">
+            <form method="POST" class="d-inline-flex gap-2 align-items-center">//fixed
               <input type="hidden" name="user_id" value="<?= $lib['id'] ?>">
               <select name="branch_id" class="form-select form-select-sm" style="width:auto">
                 <option value="">-- Select Branch --</option>

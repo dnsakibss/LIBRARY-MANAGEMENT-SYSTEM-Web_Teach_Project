@@ -56,7 +56,7 @@
     </div>
   </div>
 
-  <!-- All Overdue Loans -->
+  <!-- All Overdue Loan -->
   <div class="col-md-6">
     <div class="card border-0 shadow-sm h-100">
       <div class="card-header bg-white fw-semibold"><i class="bi bi-exclamation-triangle text-danger me-2"></i>Overdue Loans (All Branches)</div>

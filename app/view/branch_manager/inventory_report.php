@@ -4,7 +4,7 @@
 </div>
 
 <div class="row g-4">
-  <!-- Quick Update Form -->
+  <!-- Quick Update For -->
   <div class="col-md-4">
     <div class="card border-0 shadow-sm">
       <div class="card-header bg-white fw-semibold text-danger">
