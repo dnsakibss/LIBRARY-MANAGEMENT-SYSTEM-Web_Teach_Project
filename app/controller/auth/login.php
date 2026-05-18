@@ -1,4 +1,5 @@
 <?php
+// Person 1 - Core Auth & Member Role
 // app/controller/auth/login.php
 require_once __DIR__ . '/../../../app/model/UserModel.php';
 
