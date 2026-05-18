@@ -7,7 +7,7 @@ $fineModel    = new FineModel($conn);
 $branchModel  = new BranchModel($conn);
 $statsPerBranch    = $borrowModel->statsPerBranch();
 $finesPerBranch    = $fineModel->outstandingPerBranch();
-$overdueAll        = $borrowModel->getAllOverdue();
+$overdueAll        = $borrowModel->getAllOverdue(); //new added code 
 $branches          = $branchModel->getAll();
 $pageTitle = 'Branch Manager Dashboard';
 require __DIR__ . '/../../view/shared/header.php';
