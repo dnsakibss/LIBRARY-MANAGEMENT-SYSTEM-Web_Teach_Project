@@ -1,4 +1,6 @@
 <?php
+// app/controller/auth/unauthorized.php
+//this is the unauthorized.php file in the auth controller, it will show a message to the user that they do not have permission to access the page they are trying to access
 $pageTitle = 'Access Denied';
 require __DIR__ . '/../../view/shared/header.php';
 ?>
