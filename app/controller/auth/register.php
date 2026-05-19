@@ -1,5 +1,6 @@
 <?php
 // app/controller/auth/register.php
+//this is the register.php file in the auth controller, it will handle the registration of new members, validate the input, and save the new user to the database
 require_once __DIR__ . '/../../../app/model/UserModel.php';
 require_once __DIR__ . '/../../../app/model/Models.php';
 
