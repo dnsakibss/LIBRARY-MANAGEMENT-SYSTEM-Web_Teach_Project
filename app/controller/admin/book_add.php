@@ -1,18 +1,33 @@
-<?php /* app/controller/admin/book_add.php */
+<?php
+/* app/controller/admin/book_add.php */
+
+// 1. Security Check: Block access if the user is not a logged-in admin
 requireLogin('admin');
+
+// 2. Include the database models needed for catalog management
 require_once __DIR__ . '/../../model/BookModel.php';
 require_once __DIR__ . '/../../model/Models.php';
 
+// 3. Initialize model objects using the database connection ($conn)
 $bookModel   = new BookModel($conn);
 $genreModel  = new GenreModel($conn);
 $branchModel = new BranchModel($conn);
-$genres      = $genreModel->getAll();
-$branches    = $branchModel->getAll();
-$errors      = [];
-$old         = [];
 
+// 4. Fetch dropdown data for the HTML form view
+$genres   = $genreModel->getAll();
+$branches = $branchModel->getAll();
+
+// Arrays to handle validation tracking and form state preservation
+$errors = [];
+$old    = [];
+
+// 5. Form Handling: Process data when the user clicks the save button
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $old       = $_POST;
+    
+    // Save submitted data to preserve inputs if validation fails
+    $old = $_POST;
+    
+    // Sanitize text inputs from the form fields
     $title     = trim($_POST['title'] ?? '');
     $author    = trim($_POST['author'] ?? '');
     $isbn      = trim($_POST['isbn'] ?? '');
@@ -20,57 +35,110 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $publisher = trim($_POST['publisher'] ?? '');
     $year      = (int)($_POST['published_year'] ?? 0);
     $desc      = trim($_POST['description'] ?? '');
+    
+    // Default placeholder for the image path
     $coverPath = '';
 
+    // Collect individual branch copy counts submitted from the form
     $inventoryCopies = $_POST['inv_copies'] ?? [];
 
-    if (!$title)  $errors[] = 'Title is required.';
-    if (!$author) $errors[] = 'Author is required.';
-    if (!$isbn)   $errors[] = 'ISBN is required.';
-
-    $hasInventory = false;
-    foreach ($inventoryCopies as $bid => $qty) {
-        if ((int)$qty > 0) { $hasInventory = true; break; }
+    // Validation: Check that required textbook parameters are filled out
+    if ($title === '') {
+        $errors[] = 'Title is required.';
     }
-    if (!$hasInventory) $errors[] = 'Please set copies for at least one branch.';
+    if ($author === '') {
+        $errors[] = 'Author is required.';
+    }
+    if ($isbn === '') {
+        $errors[] = 'ISBN is required.';
+    }
 
+    // Validation: Confirm that the user assigned stock to at least one physical branch
+    $hasInventory = false;
+    foreach ($inventoryCopies as $branchId => $quantity) {
+        if ((int)$quantity > 0) {
+            $hasInventory = true;
+            break; 
+        }
+    }
+    
+    if ($hasInventory === false) {
+        $errors[] = 'Please set copies for at least one branch.';
+    }
+
+    // 6. Action Execution: Save book records if all input tests pass
     if (empty($errors)) {
+        
+        // Handle optional cover image file upload
         if (!empty($_FILES['cover_image']['name'])) {
             $ext   = pathinfo($_FILES['cover_image']['name'], PATHINFO_EXTENSION);
-            $fname = 'cover_' . time() . '_' . rand(100,999) . '.' . $ext;
+            
+            // Build a scrambled unique file name to avoid duplicate collisions on disk
+            $fname = 'cover_' . time() . '_' . rand(100, 999) . '.' . $ext;
             $dest  = UPLOAD_DIR . 'covers/' . $fname;
-            if (!is_dir(UPLOAD_DIR . 'covers/')) mkdir(UPLOAD_DIR . 'covers/', 0755, true);
+            
+            // Ensure the upload subdirectory folder structure exists
+            if (!is_dir(UPLOAD_DIR . 'covers/')) {
+                mkdir(UPLOAD_DIR . 'covers/', 0755, true);
+            }
+            
+            // Relocate uploaded temp file to its final destination directory
             if (move_uploaded_file($_FILES['cover_image']['tmp_name'], $dest)) {
                 $coverPath = 'uploads/covers/' . $fname;
             }
         }
+        
+        // Set up blank optional fields properly as null values for clean DB indexing
+        $finalGenreId = null;
+        if ($genreId > 0) {
+            $finalGenreId = $genreId;
+        }
+        
+        $finalYear = null;
+        if ($year > 0) {
+            $finalYear = $year;
+        }
+
+        // Bundle data keys together to match model parameters
         $data = [
             'title'            => $title,
             'author'           => $author,
             'isbn'             => $isbn,
-            'genre_id'         => $genreId ?: null,
+            'genre_id'         => $finalGenreId,
             'publisher'        => $publisher,
-            'published_year'   => $year ?: null,
+            'published_year'   => $finalYear,
             'description'      => $desc,
             'cover_image_path' => $coverPath,
         ];
+        
+        // Insert the main book catalog details into the books table
         if ($bookModel->add($data)) {
+            // Get the autogenerated book database ID to map inventory records
             $newBookId = $conn->insert_id;
+            
+            // Loop through stock distribution inputs to set branch allocation records
             foreach ($inventoryCopies as $bid => $qty) {
                 $qty = (int)$qty;
                 $bid = (int)$bid;
+                
                 if ($qty > 0 && $bid > 0) {
+                    // Set both total_copies and available_copies to the identical initial total quantity
                     $bookModel->upsertInventory($newBookId, $bid, $qty, $qty);
                 }
             }
-            setFlash('success', "Book \"{$title}\" added successfully.");
+            
+            // Save flash success alert notice and send admin back to listing view
+            setFlash('success', "Book \"" . $title . "\" added successfully.");
             redirect('index.php?page=admin_books');
+            
         } else {
+            // Error handling fallback for overlapping duplicate constraint exceptions (e.g. matching ISBN)
             $errors[] = 'Failed to add book. ISBN may already exist.';
         }
     }
 }
 
+// 7. Render Configuration: Define structural views
 $pageTitle = 'Add New Book';
 require __DIR__ . '/../../view/shared/header.php';
 require __DIR__ . '/../../view/admin/book_add.php';
