@@ -2,23 +2,6 @@
 
 <h2 class="mb-4"><i class="bi bi-megaphone me-2"></i>Manage Announcements</h2>
 
-<?php if (isset($_SESSION['success_message'])): ?>
-    <div class="alert alert-success py-2 small">
-        <i class="bi bi-check-circle me-1"></i>
-        <?= e($_SESSION['success_message']); ?>
-    </div>
-    <?php unset($_SESSION['success_message']); ?>
-<?php endif; ?>
-
-<?php if (isset($_SESSION['error_message'])): ?>
-    <div class="alert alert-danger py-2 small">
-        <i class="bi bi-exclamation-circle me-1"></i>
-        <?= e($_SESSION['error_message']); ?>
-    </div>
-    <?php unset($_SESSION['error_message']); ?>
-<?php endif; ?>
-
-
 <div class="row g-4">
   
   <div class="col-md-4">
@@ -41,7 +24,7 @@
             <select name="branch_id" class="form-select form-select-sm">
               <?php foreach ($branches as $b): ?>
                 <option value="<?= $b['id'] ?>">
-                    <?= e($b['name']) ?>
+                  <?= e($b['name']) ?>
                 </option>
               <?php endforeach; ?>
             </select>
@@ -60,8 +43,9 @@
           <button class="btn btn-dark btn-sm w-100">
             <i class="bi bi-send me-1"></i>Post
           </button>
-
+          
         </form>
+        
       </div>
     </div>
   </div>
@@ -83,27 +67,32 @@
             <tbody>
             <?php foreach ($announcements as $a): ?>
             <tr>
+              
               <td class="fw-semibold"><?= e($a['title']) ?></td>
               
               <td>
                 <?php 
+                // Check if the announcement has an assigned branch ID key index
                 if ($a['branch_id'] != null) {
-                    // It's a branch specific announcement
+                    
+                    // It is designated for a specific branch location layout
                     $badgeColor = "secondary";
                     
                     if (isset($a['branch_name'])) {
-                        $scopeText = $a['branch_name'];
+                        $scopeLabel = $a['branch_name'];
                     } else {
-                        $scopeText = "Branch";
+                        $scopeLabel = "Branch";
                     }
+                    
                 } else {
-                    // It's a global platform announcement
+                    
+                    // The announcement has no branch mapping, meaning it is global
                     $badgeColor = "primary";
-                    $scopeText = "Platform";
+                    $scopeLabel = "Platform";
                 }
                 ?>
                 <span class="badge bg-<?= $badgeColor ?>">
-                    <?= e($scopeText) ?>
+                  <?= e($scopeLabel) ?>
                 </span>
               </td>
               
@@ -111,18 +100,20 @@
               
               <td>
                 <?php 
-                $dateOnly = substr($a['published_at'], 0, 10); 
-                echo e($dateOnly);
+                $publishedTimestamp = $a['published_at'];
+                $cleanDate = substr($publishedTimestamp, 0, 10); 
+                echo e($cleanDate);
                 ?>
               </td>
+              
             </tr>
             <?php endforeach; ?>
             </tbody>
           </table>
-
+          
         </div>
       </div>
     </div>
   </div>
-
+  
 </div>
