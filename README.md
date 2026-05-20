@@ -197,4 +197,4 @@ Role-based access is enforced server-side via the `requireLogin(...$roles)` help
 
 ## License
 
-This project is intended for academic/educational use.
+This project is licensed under the [MIT License](LICENSE).
